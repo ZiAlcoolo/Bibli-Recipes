@@ -1,192 +1,569 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#FFF8EE">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<title>Mes recettes</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#FFF8EE;--card:#fff;--ink:#1F1B16;--mute:#8A8176;--brand:#12B76A;--brand-d:#0C8F53;--sun:#FFE08A;--line:#F0E4D2;--r:24px}
-*{box-sizing:border-box;margin:0}
-body{font-family:Nunito,system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:0 18px 110px;max-width:760px;margin:auto;-webkit-tap-highlight-color:transparent}
-h1{font-weight:900;font-size:30px;line-height:1.1;letter-spacing:-.5px}
-h2{font-weight:900;font-size:22px;margin:28px 0 12px}
-header{padding:calc(env(safe-area-inset-top) + 22px) 0 6px}
-header p{color:var(--mute);font-weight:700;margin-top:4px}
-section{display:none}section.on{display:block}
-.card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:0 2px 0 var(--line)}
-input{width:100%;font:inherit;font-weight:700;padding:15px 18px;border-radius:999px;border:2px solid var(--line);background:#fff;outline:0;margin-top:8px}
-input:focus{border-color:var(--brand)}
-label{font-weight:800;font-size:14px;display:block;margin-top:14px}
-small{color:var(--mute);font-weight:600;display:block;margin-top:6px;line-height:1.4}
-.btn{font:inherit;font-weight:900;border:0;border-radius:999px;padding:15px 26px;background:var(--brand);color:#fff;cursor:pointer;font-size:16px;transition:transform .1s}
-.btn:active{transform:scale(.96)}
-.btn.alt{background:var(--sun);color:var(--ink)}
-.btn.block{width:100%;margin-top:14px}
-.btn[disabled]{opacity:.55}
-.row{display:flex;gap:10px;align-items:center}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-.rc{background:var(--card);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 2px 0 var(--line)}
-.rc .im{aspect-ratio:1/1;background:var(--sun) center/cover}
-.rc div.t{padding:12px 14px 14px;font-weight:800;line-height:1.25}
-.rc span{display:block;color:var(--mute);font-size:13px;font-weight:700;margin-top:4px}
-.empty{text-align:center;color:var(--mute);font-weight:700;padding:40px 10px}
-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);background:var(--ink);border-radius:999px;padding:6px;display:flex;gap:4px;z-index:5;box-shadow:0 8px 24px #0003}
-nav button{font:inherit;font-weight:800;font-size:14px;border:0;background:none;color:#fff9;padding:11px 18px;border-radius:999px;cursor:pointer}
-nav button.on{background:var(--brand);color:#fff}
-#sheet{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:10;display:none}
-#sheet.on{display:block}
-.hero{height:min(46vh,380px);background:var(--sun) center/cover;position:relative}
-.x{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:14px;width:42px;height:42px;border-radius:50%;border:0;background:#fff;font-size:18px;font-weight:900;cursor:pointer}
-.body{max-width:760px;margin:-28px auto 0;background:var(--bg);border-radius:28px 28px 0 0;padding:26px 18px 130px;position:relative}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.chip{background:var(--sun);border-radius:999px;padding:7px 14px;font-weight:800;font-size:14px}
-.src{margin-top:6px;font-weight:700;color:var(--mute);font-size:14px}.src a{color:inherit}
-.por{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:999px;padding:8px;margin-top:18px;font-weight:800}
-.por button{width:40px;height:40px;border-radius:50%;border:0;background:var(--brand);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
-.ing{list-style:none;padding:0;background:#fff;border-radius:var(--r);padding:6px 18px}
-.ing li{padding:13px 0;border-bottom:1px solid var(--line);font-weight:700;display:flex;gap:12px;align-items:center;cursor:pointer}
-.ing li:last-child{border:0}
-.ing li:before{content:"";flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line)}
-.ing li.d{color:var(--mute);text-decoration:line-through}.ing li.d:before{background:var(--brand);border-color:var(--brand)}
-ol.st{list-style:none;padding:0;counter-reset:s}
-ol.st li{counter-increment:s;display:flex;gap:14px;margin-bottom:18px;line-height:1.5;font-weight:600}
-ol.st li:before{content:counter(s);flex:none;width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;font-weight:900;display:grid;place-items:center;font-size:14px}
-.bar{position:fixed;left:0;right:0;bottom:0;padding:14px 18px calc(env(safe-area-inset-bottom) + 14px);background:linear-gradient(transparent,var(--bg) 35%)}
-.bar .btn{display:block;max-width:724px;margin:auto;width:100%}
-#toast{position:fixed;top:16px;left:50%;transform:translate(-50%,-90px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-weight:800;z-index:20;transition:transform .25s;max-width:92vw;text-align:center}
-#toast.on{transform:translate(-50%,0)}
-textarea{width:100%;font:inherit;font-weight:600;padding:14px 18px;border-radius:20px;border:2px solid var(--line);background:#fff;outline:0;resize:vertical}textarea:focus{border-color:var(--brand)}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#FFF8EE">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Mes recettes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FFF8EE;
+      --card: #fff;
+      --ink: #1F1B16;
+      --mute: #8A8176;
+      --brand: #12B76A;
+      --brand-d: #0C8F53;
+      --sun: #FFE08A;
+      --line: #F0E4D2;
+      --r: 24px
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0
+    }
+
+    body {
+      font-family: Nunito, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 0 18px 110px;
+      max-width: 760px;
+      margin: auto;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    h1 {
+      font-weight: 900;
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: -.5px
+    }
+
+    h2 {
+      font-weight: 900;
+      font-size: 22px;
+      margin: 28px 0 12px
+    }
+
+    header {
+      padding: calc(env(safe-area-inset-top) + 22px) 0 6px
+    }
+
+    header p {
+      color: var(--mute);
+      font-weight: 700;
+      margin-top: 4px
+    }
+
+    section {
+      display: none
+    }
+
+    section.on {
+      display: block
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 18px;
+      box-shadow: 0 2px 0 var(--line)
+    }
+
+    input {
+      width: 100%;
+      font: inherit;
+      font-weight: 700;
+      padding: 15px 18px;
+      border-radius: 999px;
+      border: 2px solid var(--line);
+      background: #fff;
+      outline: 0;
+      margin-top: 8px
+    }
+
+    input:focus {
+      border-color: var(--brand)
+    }
+
+    label {
+      font-weight: 800;
+      font-size: 14px;
+      display: block;
+      margin-top: 14px
+    }
+
+    small {
+      color: var(--mute);
+      font-weight: 600;
+      display: block;
+      margin-top: 6px;
+      line-height: 1.4
+    }
+
+    .btn {
+      font: inherit;
+      font-weight: 900;
+      border: 0;
+      border-radius: 999px;
+      padding: 15px 26px;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      transition: transform .1s
+    }
+
+    .btn:active {
+      transform: scale(.96)
+    }
+
+    .btn.alt {
+      background: var(--sun);
+      color: var(--ink)
+    }
+
+    .btn.block {
+      width: 100%;
+      margin-top: 14px
+    }
+
+    .btn[disabled] {
+      opacity: .55
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px
+    }
+
+    .rc {
+      background: var(--card);
+      border-radius: var(--r);
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: 0 2px 0 var(--line)
+    }
+
+    .rc .im {
+      aspect-ratio: 1/1;
+      background: var(--sun) center/cover
+    }
+
+    .rc div.t {
+      padding: 12px 14px 14px;
+      font-weight: 800;
+      line-height: 1.25
+    }
+
+    .rc span {
+      display: block;
+      color: var(--mute);
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 4px
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--mute);
+      font-weight: 700;
+      padding: 40px 10px
+    }
+
+    nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(env(safe-area-inset-bottom) + 14px);
+      background: var(--ink);
+      border-radius: 999px;
+      padding: 6px;
+      display: flex;
+      gap: 4px;
+      z-index: 5;
+      box-shadow: 0 8px 24px #0003
+    }
+
+    nav button {
+      font: inherit;
+      font-weight: 800;
+      font-size: 14px;
+      border: 0;
+      background: none;
+      color: #fff9;
+      padding: 11px 18px;
+      border-radius: 999px;
+      cursor: pointer
+    }
+
+    nav button.on {
+      background: var(--brand);
+      color: #fff
+    }
+
+    #sheet {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      overflow: auto;
+      z-index: 10;
+      display: none
+    }
+
+    #sheet.on {
+      display: block
+    }
+
+    .hero {
+      height: min(46vh, 380px);
+      background: var(--sun) center/cover;
+      position: relative
+    }
+
+    .x {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 14px);
+      left: 14px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 0;
+      background: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer
+    }
+
+    .body {
+      max-width: 760px;
+      margin: -28px auto 0;
+      background: var(--bg);
+      border-radius: 28px 28px 0 0;
+      padding: 26px 18px 130px;
+      position: relative
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .chip {
+      background: var(--sun);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-weight: 800;
+      font-size: 14px
+    }
+
+    .src {
+      margin-top: 6px;
+      font-weight: 700;
+      color: var(--mute);
+      font-size: 14px
+    }
+
+    .src a {
+      color: inherit
+    }
+
+    .por {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px;
+      margin-top: 18px;
+      font-weight: 800
+    }
+
+    .por button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--brand);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer
+    }
+
+    .ing {
+      list-style: none;
+      padding: 0;
+      background: #fff;
+      border-radius: var(--r);
+      padding: 6px 18px
+    }
+
+    .ing li {
+      padding: 13px 0;
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer
+    }
+
+    .ing li:last-child {
+      border: 0
+    }
+
+    .ing li:before {
+      content: "";
+      flex: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--line)
+    }
+
+    .ing li.d {
+      color: var(--mute);
+      text-decoration: line-through
+    }
+
+    .ing li.d:before {
+      background: var(--brand);
+      border-color: var(--brand)
+    }
+
+    ol.st {
+      list-style: none;
+      padding: 0;
+      counter-reset: s
+    }
+
+    ol.st li {
+      counter-increment: s;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+      line-height: 1.5;
+      font-weight: 600
+    }
+
+    ol.st li:before {
+      content: counter(s);
+      flex: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 900;
+      display: grid;
+      place-items: center;
+      font-size: 14px
+    }
+
+    .bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 18px calc(env(safe-area-inset-bottom) + 14px);
+      background: linear-gradient(transparent, var(--bg) 35%)
+    }
+
+    .bar .btn {
+      display: block;
+      max-width: 724px;
+      margin: auto;
+      width: 100%
+    }
+
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translate(-50%, -90px);
+      background: var(--ink);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-weight: 800;
+      z-index: 20;
+      transition: transform .25s;
+      max-width: 92vw;
+      text-align: center
+    }
+
+    #toast.on {
+      transform: translate(-50%, 0)
+    }
+
+    textarea {
+      width: 100%;
+      font: inherit;
+      font-weight: 600;
+      padding: 14px 18px;
+      border-radius: 20px;
+      border: 2px solid var(--line);
+      background: #fff;
+      outline: 0;
+      resize: vertical
+    }
+
+    textarea:focus {
+      border-color: var(--brand)
+    }
+  </style>
 </head>
+
 <body>
-<div id="toast"></div>
+  <div id="toast"></div>
 
-<section id="v-add" class="on">
-  <header><h1>Quelle recette<br>aujourd'hui ?</h1><p>Colle un lien, on fait le tri.</p></header>
-  <div class="card" style="margin-top:18px">
-    <input id="url" type="url" placeholder="https://www.marmiton.org/…" inputmode="url">
-    <button class="btn block" id="go" onclick="extract()">Afficher la recette</button>
-  </div>
-</section>
+  <section id="v-add" class="on">
+    <header>
+      <h1>Quelle recette<br>aujourd'hui ?</h1>
+      <p>Colle un lien, on fait le tri.</p>
+    </header>
+    <div class="card" style="margin-top:18px">
+      <input id="url" type="url" placeholder="https://www.marmiton.org/…" inputmode="url">
+      <button class="btn block" id="go" onclick="extract()">Afficher la recette</button>
+    </div>
+  </section>
 
-<section id="v-lib">
-  <header><h1>Mes recettes</h1><p id="who"></p></header>
-  <div id="grid" class="grid" style="margin-top:18px"></div>
-</section>
+  <section id="v-lib">
+    <header>
+      <h1>Mes recettes</h1>
+      <p id="who"></p>
+    </header>
+    <div id="grid" class="grid" style="margin-top:18px"></div>
+  </section>
 
-<section id="v-set">
-  <header><h1>Réglages</h1><p>À faire une seule fois.</p></header>
-  <div class="card" style="margin-top:18px">
-    <label for="pseudo">Ton pseudo</label>
-    <input id="pseudo" placeholder="Camille">
-    <label for="sheet-url">Lien de ton Google Sheet</label>
-    <input id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/…">
-    <small>Crée un Sheet vide, puis partage-le en <b>Éditeur</b> avec <b id="owner"></b>. Un onglet « Recettes » sera créé automatiquement.</small>
-    <button class="btn block" onclick="saveCfg()">Enregistrer et tester</button>
-    <button class="btn alt block" id="inst" style="display:none">Installer l'app</button>
-    <small>Sur iPhone : Partager puis « Sur l'écran d'accueil ».</small>
-  </div>
-</section>
+  <section id="v-set">
+    <header>
+      <h1>Réglages</h1>
+      <p>À faire une seule fois.</p>
+    </header>
+    <div class="card" style="margin-top:18px">
+      <label for="pseudo">Ton pseudo</label>
+      <input id="pseudo" placeholder="Camille">
+      <label for="sheet-url">Lien de ton Google Sheet</label>
+      <input id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/…">
+      <small>Crée un Sheet vide, puis partage-le en <b>Éditeur</b> avec <b id="owner"></b>. Un onglet « Recettes » sera
+        créé automatiquement.</small>
+      <button class="btn block" onclick="saveCfg()">Enregistrer et tester</button>
+      <button class="btn alt block" id="inst" style="display:none">Installer l'app</button>
+      <small>Sur iPhone : Partager puis « Sur l'écran d'accueil ».</small>
+    </div>
+  </section>
 
-<div id="sheet"></div>
+  <div id="sheet"></div>
 
-<nav>
-  <button data-v="add" class="on">Ajouter</button>
-  <button data-v="lib">Mes recettes</button>
-  <button data-v="set">Réglages</button>
-</nav>
+  <nav>
+    <button data-v="add" class="on">Ajouter</button>
+    <button data-v="lib">Mes recettes</button>
+    <button data-v="set">Réglages</button>
+  </nav>
 
-<script>
-// ⚙️ À renseigner une seule fois par le propriétaire de l'app
-const API = 'COLLE_ICI_L_URL_DU_DEPLOIEMENT_APPS_SCRIPT';
-const OWNER = 'ton.email@gmail.com';
+  <script>
+    // ⚙️ À renseigner une seule fois par le propriétaire de l'app
+    const API = 'https://script.google.com/macros/s/AKfycbxNsB1n8rEPMhJRIwWQXOtSiTre6NO5zVg1gCM_2qFa8SkvAoLg3fVQRf_Jv-5ZYD27OA/exec';
+    const OWNER = 'mathis.mouawad@gmail.com';
 
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let cfg = {}, cur = null, por = 0, lib = [];
-try { cfg = JSON.parse(localStorage.getItem('cfg') || '{}'); } catch (e) {}
-$('#owner').textContent = OWNER;
-$('#pseudo').value = cfg.pseudo || '';
-$('#sheet-url').value = cfg.sheet || '';
+    const $ = s => document.querySelector(s);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    let cfg = {}, cur = null, por = 0, lib = [];
+    try { cfg = JSON.parse(localStorage.getItem('cfg') || '{}'); } catch (e) { }
+    $('#owner').textContent = OWNER;
+    $('#pseudo').value = cfg.pseudo || '';
+    $('#sheet-url').value = cfg.sheet || '';
 
-function toast(m) {
-  const t = $('#toast'); t.textContent = m.message || m; t.classList.add('on');
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 3500);
-}
+    function toast(m) {
+      const t = $('#toast'); t.textContent = m.message || m; t.classList.add('on');
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 3500);
+    }
 
-function view(v) {
-  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-  if (v === 'lib') loadLib();
-  scrollTo(0, 0);
-}
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => { closeD(); view(b.dataset.v); });
-if (!cfg.sheet) view('set');
+    function view(v) {
+      document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+      document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+      if (v === 'lib') loadLib();
+      scrollTo(0, 0);
+    }
+    document.querySelectorAll('nav button').forEach(b => b.onclick = () => { closeD(); view(b.dataset.v); });
+    if (!cfg.sheet) view('set');
 
-async function api(action, data = {}) {
-  const r = action === 'save'
-    ? await fetch(API, { method: 'POST', body: JSON.stringify({ action, ...data }) })
-    : await fetch(API + '?' + new URLSearchParams({ action, ...data }));
-  const d = await r.json();
-  if (!d.ok) throw new Error(d.error);
-  return d;
-}
+    async function api(action, data = {}) {
+      const r = action === 'save'
+        ? await fetch(API, { method: 'POST', body: JSON.stringify({ action, ...data }) })
+        : await fetch(API + '?' + new URLSearchParams({ action, ...data }));
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      return d;
+    }
 
-async function saveCfg() {
-  const pseudo = $('#pseudo').value.trim(), sheet = $('#sheet-url').value.trim();
-  if (!pseudo || !/\/d\/[\w-]+/.test(sheet)) return toast('Pseudo et lien de Sheet valides requis');
-  try {
-    await api('ping', { sheet });
-    cfg = { pseudo, sheet };
-    localStorage.setItem('cfg', JSON.stringify(cfg));
-    toast('Connecté, bienvenue ' + pseudo + ' !');
-    view('add');
-  } catch (e) { toast(e); }
-}
+    async function saveCfg() {
+      const pseudo = $('#pseudo').value.trim(), sheet = $('#sheet-url').value.trim();
+      if (!pseudo || !/\/d\/[\w-]+/.test(sheet)) return toast('Pseudo et lien de Sheet valides requis');
+      try {
+        await api('ping', { sheet });
+        cfg = { pseudo, sheet };
+        localStorage.setItem('cfg', JSON.stringify(cfg));
+        toast('Connecté, bienvenue ' + pseudo + ' !');
+        view('add');
+      } catch (e) { toast(e); }
+    }
 
-async function extract() {
-  const u = $('#url').value.trim();
-  if (!/^https?:\/\//.test(u)) return toast('Colle un lien valide');
-  const b = $('#go'); b.disabled = true; b.textContent = 'Lecture de la recette…';
-  try { cur = (await api('extract', { url: u })).recipe; show(cur, true); }
-  catch (e) { toast(e); }
-  b.disabled = false; b.textContent = 'Afficher la recette';
-}
+    async function extract() {
+      const u = $('#url').value.trim();
+      if (!/^https?:\/\//.test(u)) return toast('Colle un lien valide');
+      const b = $('#go'); b.disabled = true; b.textContent = 'Lecture de la recette…';
+      try { cur = (await api('extract', { url: u })).recipe; show(cur, true); }
+      catch (e) { toast(e); }
+      b.disabled = false; b.textContent = 'Afficher la recette';
+    }
 
-async function loadLib() {
-  $('#who').textContent = cfg.pseudo ? 'Le carnet de ' + cfg.pseudo : '';
-  const g = $('#grid');
-  if (!cfg.sheet) { g.innerHTML = '<p class="empty">Configure ton Sheet dans les réglages.</p>'; return; }
-  g.innerHTML = '<p class="empty">Chargement…</p>';
-  try {
-    lib = (await api('list', { sheet: cfg.sheet })).recipes;
-    g.innerHTML = lib.length ? lib.map((r, i) => `<div class="rc" onclick="show(lib[${i}],false)">
+    async function loadLib() {
+      $('#who').textContent = cfg.pseudo ? 'Le carnet de ' + cfg.pseudo : '';
+      const g = $('#grid');
+      if (!cfg.sheet) { g.innerHTML = '<p class="empty">Configure ton Sheet dans les réglages.</p>'; return; }
+      g.innerHTML = '<p class="empty">Chargement…</p>';
+      try {
+        lib = (await api('list', { sheet: cfg.sheet })).recipes;
+        g.innerHTML = lib.length ? lib.map((r, i) => `<div class="rc" onclick="show(lib[${i}],false)">
       <div class="im" style="background-image:url('${esc(r.image)}')"></div>
       <div class="t">${esc(r.title)}<span>${r.prep + r.cook ? '⏱ ' + (r.prep + r.cook) + ' min' : ''}</span></div></div>`).join('')
-      : '<p class="empty">Aucune recette pour l\'instant.<br>Colle ton premier lien !</p>';
-  } catch (e) { g.innerHTML = ''; toast(e); }
-}
+          : '<p class="empty">Aucune recette pour l\'instant.<br>Colle ton premier lien !</p>';
+      } catch (e) { g.innerHTML = ''; toast(e); }
+    }
 
-function scale(s, f) {
-  if (f === 1) return s;
-  const m = s.match(/^(?:(\d+(?:[.,]\d+)?)(?:\s+(\d)\/(\d))?|(\d)\/(\d))/);
-  if (!m) return s;
-  let v = m[1] !== undefined ? parseFloat(m[1].replace(',', '.')) + (m[2] ? m[2] / m[3] : 0) : m[4] / m[5];
-  return String(Math.round(v * f * 100) / 100).replace('.', ',') + s.slice(m[0].length);
-}
+    function scale(s, f) {
+      if (f === 1) return s;
+      const m = s.match(/^(?:(\d+(?:[.,]\d+)?)(?:\s+(\d)\/(\d))?|(\d)\/(\d))/);
+      if (!m) return s;
+      let v = m[1] !== undefined ? parseFloat(m[1].replace(',', '.')) + (m[2] ? m[2] / m[3] : 0) : m[4] / m[5];
+      return String(Math.round(v * f * 100) / 100).replace('.', ',') + s.slice(m[0].length);
+    }
 
-function show(r, canSave) {
-  cur = r; por = r.servings || 0;
-  let host = ''; try { host = new URL(r.source).hostname.replace('www.', ''); } catch (e) {}
-  const chips = [r.prep ? '⏱ Préparation ' + r.prep + ' min' : '', r.cook ? '🔥 Cuisson ' + r.cook + ' min' : ''].filter(Boolean);
-  $('#sheet').innerHTML = `
+    function show(r, canSave) {
+      cur = r; por = r.servings || 0;
+      let host = ''; try { host = new URL(r.source).hostname.replace('www.', ''); } catch (e) { }
+      const chips = [r.prep ? '⏱ Préparation ' + r.prep + ' min' : '', r.cook ? '🔥 Cuisson ' + r.cook + ' min' : ''].filter(Boolean);
+      $('#sheet').innerHTML = `
     <div class="hero" style="background-image:url('${esc(r.image)}')"><button class="x" onclick="closeD()">✕</button></div>
     <div class="body">
       <h1>${esc(r.title)}</h1>
@@ -196,42 +573,43 @@ function show(r, canSave) {
       <h2>Ingrédients</h2><ul class="ing" id="ing"></ul>
       <h2>Préparation</h2><ol class="st">${r.steps.map(s => `<li><span>${esc(s)}</span></li>`).join('')}</ol>
       ${canSave ? `<h2>Mes notes</h2><textarea id="notes" rows="3" placeholder="Tes ajustements : moins de sel, cuisson plus longue…">${esc(r.notes)}</textarea>`
-        : r.notes ? `<h2>Notes</h2><p style="font-weight:600;line-height:1.5">${esc(r.notes)}</p>` : ''}
+          : r.notes ? `<h2>Notes</h2><p style="font-weight:600;line-height:1.5">${esc(r.notes)}</p>` : ''}
       ${!canSave && r.row ? '<button class="btn alt block" style="margin-top:28px" onclick="del()">Supprimer cette recette</button>' : ''}
     </div>
     ${canSave ? '<div class="bar"><button class="btn" id="sv" onclick="save()">Sauvegarder dans mon carnet</button></div>' : ''}`;
-  renderIng(); $('#sheet').classList.add('on'); $('#sheet').scrollTop = 0;
-}
+      renderIng(); $('#sheet').classList.add('on'); $('#sheet').scrollTop = 0;
+    }
 
-function renderIng() {
-  const f = por ? por / (cur.servings || 1) : 1;
-  if (por) $('#pn').textContent = por + (por > 1 ? ' personnes' : ' personne');
-  $('#ing').innerHTML = cur.ingredients.map(i => `<li onclick="this.classList.toggle('d')">${esc(scale(i, f))}</li>`).join('');
-}
-function step(d) { por = Math.max(1, por + d); renderIng(); }
-function closeD() { $('#sheet').classList.remove('on'); }
+    function renderIng() {
+      const f = por ? por / (cur.servings || 1) : 1;
+      if (por) $('#pn').textContent = por + (por > 1 ? ' personnes' : ' personne');
+      $('#ing').innerHTML = cur.ingredients.map(i => `<li onclick="this.classList.toggle('d')">${esc(scale(i, f))}</li>`).join('');
+    }
+    function step(d) { por = Math.max(1, por + d); renderIng(); }
+    function closeD() { $('#sheet').classList.remove('on'); }
 
-async function save() {
-  if (!cfg.sheet) { closeD(); view('set'); return toast('Configure d\'abord ton Sheet'); }
-  const b = $('#sv'); cur.notes = $('#notes').value.trim(); b.disabled = true; b.textContent = 'Sauvegarde…';
-  try {
-    await api('save', { sheet: cfg.sheet, pseudo: cfg.pseudo, recipe: cur });
-    toast('Recette sauvegardée ✓'); closeD(); $('#url').value = '';
-  } catch (e) { toast(e); b.disabled = false; b.textContent = 'Sauvegarder dans mon carnet'; }
-}
-async function del() {
-  if (!confirm('Supprimer « ' + cur.title + ' » de ton carnet ?')) return;
-  try {
-    await api('delete', { sheet: cfg.sheet, row: cur.row, title: cur.title });
-    toast('Recette supprimée'); closeD(); loadLib();
-  } catch (e) { toast(e); }
-}
+    async function save() {
+      if (!cfg.sheet) { closeD(); view('set'); return toast('Configure d\'abord ton Sheet'); }
+      const b = $('#sv'); cur.notes = $('#notes').value.trim(); b.disabled = true; b.textContent = 'Sauvegarde…';
+      try {
+        await api('save', { sheet: cfg.sheet, pseudo: cfg.pseudo, recipe: cur });
+        toast('Recette sauvegardée ✓'); closeD(); $('#url').value = '';
+      } catch (e) { toast(e); b.disabled = false; b.textContent = 'Sauvegarder dans mon carnet'; }
+    }
+    async function del() {
+      if (!confirm('Supprimer « ' + cur.title + ' » de ton carnet ?')) return;
+      try {
+        await api('delete', { sheet: cfg.sheet, row: cur.row, title: cur.title });
+        toast('Recette supprimée'); closeD(); loadLib();
+      } catch (e) { toast(e); }
+    }
 
-// PWA
-let dp;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); dp = e; $('#inst').style.display = 'block'; });
-$('#inst').onclick = async () => { dp.prompt(); await dp.userChoice; $('#inst').style.display = 'none'; };
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-</script>
+    // PWA
+    let dp;
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); dp = e; $('#inst').style.display = 'block'; });
+    $('#inst').onclick = async () => { dp.prompt(); await dp.userChoice; $('#inst').style.display = 'none'; };
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+  </script>
 </body>
+
 </html>
