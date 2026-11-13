@@ -19,24 +19,25 @@ function route_(p) {
     if (p.action === 'ping') { sheet_(p.sheet); return { ok: true }; }
     return { ok: false, error: 'Action inconnue' };
   } catch (err) {
-    return { ok: false, error: String(err.message || err) };
+    return { ok: false, error: String(err.message || err), manual: !!err.manual };
   }
 }
 
 /* ---------- Extraction ---------- */
 function extract_(url) {
+  if (/^https?:\/\/([^\/]*\.)?(instagram\.com|tiktok\.com)\//i.test(url)) return social_(url);
   const res = UrlFetchApp.fetch(url, {
     headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' },
     muteHttpExceptions: true, followRedirects: true
   });
-  if (res.getResponseCode() >= 400) throw new Error('Site inaccessible (code ' + res.getResponseCode() + '). Il bloque peut-être les robots.');
+  if (res.getResponseCode() >= 400) fail_('Site inaccessible (code ' + res.getResponseCode() + '). Il bloque peut-être les robots.');
   const html = res.getContentText();
   const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let m, r = null;
   while (!r && (m = re.exec(html))) {
     try { r = findRecipe_(JSON.parse(m[1].trim())); } catch (e) { /* bloc invalide, on passe au suivant */ }
   }
-  if (!r) throw new Error("Aucune recette structurée trouvée sur cette page.");
+  if (!r) fail_("Aucune recette structurée trouvée sur cette page.");
   const steps = steps_(r.recipeInstructions);
   return {
     title: clean_(r.name),
@@ -127,4 +128,48 @@ function delete_(url, row, title) {
   if (row < 2 || String(sh.getRange(row, 1).getValue()) !== String(title)) throw new Error('La ligne a changé dans le Sheet, recharge ta liste.');
   sh.deleteRow(row);
   return true;
+}
+
+/* ---------- Instagram / TikTok (légende via oEmbed public, sans clé) ---------- */
+function fail_(msg) { const e = new Error(msg); e.manual = true; throw e; }
+
+function social_(url) {
+  const tt = /tiktok\.com/i.test(url);
+  if (tt) url = resolve_(url);
+  const api = tt
+    ? 'https://www.tiktok.com/oembed?url=' + encodeURIComponent(url)
+    : 'https://graph.facebook.com/v25.0/instagram_oembed?omitscript=true&url=' + encodeURIComponent(url);
+  const res = UrlFetchApp.fetch(api, { headers: { 'User-Agent': UA }, muteHttpExceptions: true });
+  if (res.getResponseCode() >= 400) fail_('Post inaccessible (privé, supprimé ou service indisponible).');
+  const d = JSON.parse(res.getContentText());
+  let caption = '', author = '';
+  if (tt) {
+    caption = d.title || ''; author = d.author_name || '';
+  } else {
+    const ps = (d.html || '').match(/<p[^>]*>[\s\S]*?<\/p>/gi) || [];
+    if (ps.length > 1) caption = text_(ps[0]);
+    if (ps.length) author = text_(ps[ps.length - 1]).replace(/^A post shared by\s*/i, '').replace(/\s*\(@.*$/, '');
+  }
+  if (!caption.trim()) fail_('Aucune légende trouvée sur ce post.');
+  return { caption: caption, author: author, image: d.thumbnail_url || '', source: url };
+}
+
+function resolve_(u) {
+  for (let i = 0; i < 4 && /\/\/(vm|vt)\.tiktok\.com|tiktok\.com\/t\//i.test(u); i++) {
+    const h = UrlFetchApp.fetch(u, { headers: { 'User-Agent': UA }, followRedirects: false, muteHttpExceptions: true }).getHeaders();
+    const l = h['Location'] || h['location'];
+    if (!l) break;
+    u = l.split('?')[0];
+  }
+  return u;
+}
+
+// HTML -> texte en conservant les retours à la ligne
+function text_(h) {
+  return h.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;|&#0?39;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#x([0-9a-f]+);/gi, (_, c) => String.fromCodePoint(parseInt(c, 16)))
+    .replace(/&#(\d+);/g, (_, c) => String.fromCodePoint(+c))
+    .split('\n').map(x => x.replace(/[ \t]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
