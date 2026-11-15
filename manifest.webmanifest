@@ -1,6 +1,6 @@
 {
-  "name": "Mes recettes",
-  "short_name": "Recettes",
+  "name": "Bibli Recipes",
+  "short_name": "BibliRecipes",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
