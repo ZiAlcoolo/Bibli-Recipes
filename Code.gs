@@ -118,7 +118,7 @@ function sheet_(url) {
 function newId_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 12); }
 
 function row_(r, pseudo, id) {
-  return [r.title, r.source || '', r.image || '', r.servings || '', r.prep || '', r.cook || '',
+  return [r.title, r.source || '', cacheImage_(r.image || ''), r.servings || '', r.prep || '', r.cook || '',
     (r.ingredients || []).join('\n'), (r.steps || []).join('\n'), r.notes || '', pseudo || '', new Date(), id || newId_()];
 }
 
@@ -155,7 +155,8 @@ function social_(url) {
   return /tiktok\.com/i.test(url) ? tiktok_(resolve_(url)) : instagram_(url);
 }
 
-// Instagram : page d'intégration publique (l'oEmbed ne renvoie plus la légende)
+// Instagram : page d'intégration publique (l'oEmbed ne renvoie plus la légende).
+// Source principale : le JSON « contextJSON » de la page (légende complète + image) ; repli : le bloc HTML Caption.
 function instagram_(url) {
   const m = url.match(/\/(reel|reels|p|tv)\/([A-Za-z0-9_-]+)/);
   if (!m) fail_('Lien Instagram non reconnu.');
@@ -163,14 +164,36 @@ function instagram_(url) {
     headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' }, muteHttpExceptions: true
   });
   if (res.getResponseCode() === 429) fail_('Instagram limite les requêtes : réessaie dans quelques minutes.');
-  if (res.getResponseCode() >= 400) fail_('Post inaccessible (privé, supprimé ou service indisponible).');
+  if (res.getResponseCode() >= 400) fail_('Post inaccessible (supprimé ou service indisponible).');
   const h = res.getContentText();
-  const c = h.match(/<div class="Caption">([\s\S]*?)<div class="CaptionComments"/);
-  const caption = c ? text_(c[1].replace(/<a class="CaptionUsername"[\s\S]*?<\/a>/, '')) : '';
-  if (!caption) fail_('Aucune légende trouvée sur ce post.');
-  const u = h.match(/<a class="CaptionUsername"[^>]*>([\s\S]*?)<\/a>/);
-  const img = h.match(/class="EmbeddedMediaImage"[^>]*src="([^"]+)"/);
-  return { caption: caption, author: u ? text_(u[1]) : '', image: img ? img[1].replace(/&amp;/g, '&') : '', source: url.split('?')[0] };
+  let caption = '', image = '', author = '', media = null;
+  const x = h.match(/"contextJSON":"((?:[^"\\]|\\.)*)"/);
+  if (x) { try { media = deep_(JSON.parse(JSON.parse('"' + x[1] + '"')), 'shortcode_media'); } catch (e) { /* repli HTML */ } }
+  if (media) {
+    const e = media.edge_media_to_caption && media.edge_media_to_caption.edges && media.edge_media_to_caption.edges[0];
+    caption = e ? e.node.text : '';
+    image = media.display_url || media.thumbnail_src || ((media.display_resources || []).slice(-1)[0] || {}).src || '';
+    author = (media.owner && media.owner.username) || '';
+  }
+  if (!caption) {
+    const c = h.match(/<div class="Caption">([\s\S]*?)<div class="CaptionComments"/);
+    if (c) caption = text_(c[1].replace(/<a class="CaptionUsername"[\s\S]*?<\/a>/, ''));
+  }
+  if (!image) { const i = h.match(/class="EmbeddedMediaImage"[^>]*src="([^"]+)"/); if (i) image = i[1].replace(/&amp;/g, '&'); }
+  if (!author) { const u = h.match(/<a class="CaptionUsername"[^>]*>([\s\S]*?)<\/a>/); if (u) author = text_(u[1]); }
+  if (!caption.trim()) {
+    if (!media && /"contextJSON":null/.test(h)) fail_('Ce post est privé ou indisponible : seuls les posts publics peuvent être lus. Colle la légende à la main.');
+    fail_('Aucune légende trouvée sur ce post.');
+  }
+  return { caption: caption, author: author, image: image, source: url.split('?')[0] };
+}
+
+function deep_(o, key) {
+  if (o && typeof o === 'object') {
+    if (key in o && o[key] != null) return o[key];
+    for (const k in o) { const r = deep_(o[k], key); if (r != null) return r; }
+  }
+  return null;
 }
 
 // TikTok : l'oEmbed ne renvoie plus la légende (en attente du résultat des tests)
@@ -270,6 +293,7 @@ function share_(url, p) {
   } else {
     if (!p.recipe || !p.recipe.title) throw new Error('Recette invalide.');
     data = strip_(p.recipe);
+    data.image = cacheImage_(data.image);
   }
   const json = JSON.stringify(data);
   if (json.length > CHUNK * 8) throw new Error('Trop volumineux pour être partagé.');
@@ -300,3 +324,33 @@ function import_(url, grp, pseudo) {
   const id = group_save_(url, { name: grp.name, description: grp.description, ids: rows.map(r => r[11]) });
   return { id: id, count: rows.length };
 }
+
+/* ---------- Images : copie permanente dans Drive ---------- */
+// Les URLs d'images Instagram / TikTok sont signées et expirent au bout de quelques jours.
+// On les copie dans un dossier Drive (lisible par lien) ; si Drive n'est pas autorisé, on garde l'URL d'origine.
+const SOCIAL_CDN = /(cdninstagram\.com|fbcdn\.net|tiktokcdn[\w-]*\.com)/i;
+
+function cacheImage_(url) {
+  if (!url || !SOCIAL_CDN.test(url)) return url;
+  try {
+    const res = UrlFetchApp.fetch(url, { headers: { 'User-Agent': UA }, muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return url;
+    const blob = res.getBlob();
+    if (!/^image\//.test(blob.getContentType())) return url;
+    const f = imgFolder_().createFile(blob.setName('recette-' + newId_() + '.jpg'));
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w1000';
+  } catch (e) { return url; }
+}
+
+function imgFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('IMG_FOLDER');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* supprimé : on recrée */ } }
+  const f = DriveApp.createFolder('Recettes – images');
+  props.setProperty('IMG_FOLDER', f.getId());
+  return f;
+}
+
+// À exécuter UNE FOIS depuis l'éditeur pour autoriser Drive, puis redéployer une nouvelle version
+function autoriserDrive() { Logger.log('Drive autorisé : ' + DriveApp.getRootFolder().getName()); }

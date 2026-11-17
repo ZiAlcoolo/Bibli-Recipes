@@ -300,6 +300,7 @@ function show(r, canSave, resume) {
       <p class="src">${r.source ? `<a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(host)}</a>` : ''}${r.by ? ' · ajoutée par ' + esc(r.by) : ''}</p>
       <div class="chips">${chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>
       ${st.por ? `<div class="por"><button onclick="step(-1)">−</button><span id="pn"></span><button onclick="step(1)">+</button></div>` : ''}
+      ${embedUrl(r.source) ? '<button class="btn alt block" id="vb" onclick="toggleVideo()">▶ Voir la vidéo</button><div id="vid"></div>' : ''}
       <h2>Ingrédients</h2><ul class="ing" id="ing"></ul>
       <h2>Préparation</h2><ol class="st">${r.steps.map((x, i) => `<li onclick="goStep(${i})"><span>${esc(x)}</span></li>`).join('')}</ol>
       ${canSave ? `<h2>Mes notes</h2><textarea id="notes" rows="3" oninput="cur.notes=this.value;persist()" placeholder="Tes ajustements : moins de sel, cuisson plus longue…">${esc(r.notes)}</textarea><button class="btn alt block" style="margin-top:14px" onclick="editManual()">✏️ Corriger la recette</button>`
@@ -376,11 +377,13 @@ function tidy(x) {
     .replace(/½/g, '1/2').replace(/¼/g, '1/4').replace(/¾/g, '3/4').replace(/\s+/g, ' ').trim();
 }
 function cleanSteps(t) {
-  const out = [];
-  t.split(/\r?\n/).map(x => tidy(x.replace(bullet, ''))).forEach(l => {
+  const out = [], pending0 = '';
+  let pending = pending0;
+  t.split(/\r?\n/).map(x => tidy(x.replace(bullet, ''))).forEach((l, k, arr) => {
+    if (/^[^.!?:,;]{2,25}$/.test(l) && /^\d+\s*[.)]/.test(arr[k + 1] || '') && !/^(pr[ée]paration|instructions?|[ée]tapes?|m[ée]thode|proc[ée]dure|recette|ingr[ée]dients?)$/i.test(l)) { pending = l; return; }
     l = l.replace(/^(?:[ée]tape|step)\s*\d+\s*[:.\-–)]*\s*/i, '').replace(/^\d+\s*[.)\-–:]\s+/, '');
     if (!l || /^\d+$/.test(l) || /^(pr[ée]paration|instructions?|[ée]tapes?)\s*:?$/i.test(l)) return;
-    out.push(l);
+    out.push(pending ? pending + ' : ' + l : l); pending = '';
   });
   return out.length === 1 && out[0].length > 180 ? out[0].split(/(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Ý])/) : out;
 }
@@ -444,6 +447,24 @@ function editManual() {
   $('#m-p').value = r.image || ''; $('#m-n').value = r.servings || '';
   keep = { source: r.source || '', prep: r.prep || 0, cook: r.cook || 0 };
   closeD(); $('#imp').classList.add('on');
+}
+
+// ---------- Vidéo intégrée (lecteurs officiels Instagram / TikTok, sans expiration) ----------
+function embedUrl(src) {
+  src = String(src || '');
+  const ig = src.match(/instagram\.com\/(reel|reels|p|tv)\/([A-Za-z0-9_-]+)/);
+  if (ig) return { url: 'https://www.instagram.com/' + (ig[1] === 'reels' ? 'reel' : ig[1]) + '/' + ig[2] + '/embed/', h: 640 };
+  const tt = src.match(/tiktok\.com\/.*\/video\/(\d+)/);
+  if (tt) return { url: 'https://www.tiktok.com/player/v1/' + tt[1] + '?rel=0&music_info=0&description=0', h: 620 };
+  return null;
+}
+function toggleVideo() {
+  const box = $('#vid'), b = $('#vb');
+  if (box.innerHTML) { box.innerHTML = ''; b.textContent = '▶ Voir la vidéo'; return; }
+  const e = embedUrl(cur.source);
+  box.innerHTML = `<iframe src="${esc(e.url)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"
+    style="width:100%;max-width:420px;height:${e.h}px;border:0;border-radius:24px;background:#fff;display:block;margin:14px auto 0"></iframe>`;
+  b.textContent = '✕ Masquer la vidéo';
 }
 
 // ---------- Groupes ----------
