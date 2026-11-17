@@ -77,6 +77,21 @@ ol.st li.c:before{background:var(--brand)}
 #imp{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:9;display:none;padding:0 18px 40px}
 #imp.on{display:block}#imp .w{max-width:760px;margin:auto}
 .x2{width:42px;height:42px;border-radius:50%;border:0;background:#fff;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 2px 0 var(--line);margin-bottom:14px}
+.seg{display:flex;background:#fff;border-radius:999px;padding:5px;margin-top:18px;box-shadow:0 2px 0 var(--line)}
+.seg button{flex:1;font:inherit;font-weight:800;border:0;background:none;padding:10px;border-radius:999px;cursor:pointer;color:var(--mute)}
+.seg button.on{background:var(--ink);color:#fff}
+.gc{background:#fff;border-radius:var(--r);padding:18px;margin-top:12px;cursor:pointer;box-shadow:0 2px 0 var(--line)}
+.gc b{font-size:18px;font-weight:900}.gc p{color:var(--mute);font-weight:600;margin-top:4px;line-height:1.4}.gc small{margin-top:8px}
+#grp{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:8;display:none;padding:0 18px 120px}
+#grp.on{display:block}#grp .w{max-width:760px;margin:auto}
+#menu{position:fixed;inset:0;background:#0006;z-index:12;display:none;align-items:flex-end;justify-content:center}
+#menu.on{display:flex}
+#menu .m{background:var(--bg);width:100%;max-width:760px;border-radius:28px 28px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:80vh;overflow:auto}
+#menu h3{font-weight:900;font-size:18px;margin-bottom:6px}
+#menu button{display:block;width:100%;font:inherit;font-weight:800;text-align:left;border:0;background:#fff;padding:15px 18px;border-radius:18px;margin-top:8px;cursor:pointer}
+.x.r{left:auto;right:14px}
+.chk{display:flex;gap:12px;align-items:center;padding:12px 0;margin:0;font-size:16px;border-bottom:1px solid var(--line);font-weight:700;cursor:pointer}
+.chk input{width:22px;height:22px;margin:0;padding:0;accent-color:var(--brand);flex:none}
 </style>
 </head>
 <body>
@@ -86,7 +101,7 @@ ol.st li.c:before{background:var(--brand)}
   <header><h1>Quelle recette<br>aujourd'hui ?</h1><p>Colle un lien, on fait le tri.</p></header>
   <div id="resume"></div>
   <div class="card" style="margin-top:18px">
-    <div class="fld"><input id="url" type="url" placeholder="Lien d'une recette, d'un Reel ou d'un TikTok" inputmode="url"><button class="clr" id="clr" onclick="clr()" aria-label="Effacer">✕</button></div>
+    <div class="fld"><input id="url" type="url" placeholder="Lien d'une recette ou d'un TikTok" inputmode="url"><button class="clr" id="clr" onclick="clr()" aria-label="Effacer">✕</button></div>
     <div class="row" style="margin-top:14px"><button class="btn alt" onclick="pasteUrl()">📋 Coller</button><button class="btn" id="go" style="flex:1" onclick="extract()">Afficher la recette</button></div>
   </div>
   <button class="btn alt block" onclick="$('#imp').classList.add('on')">✍️ Importer une recette manuellement</button>
@@ -94,7 +109,9 @@ ol.st li.c:before{background:var(--brand)}
 
 <section id="v-lib">
   <header><h1>Mes recettes</h1><p id="who"></p></header>
+  <div class="seg"><button id="t-r" class="on" onclick="libTab('r')">Recettes</button><button id="t-g" onclick="libTab('g')">Groupes</button></div>
   <div id="grid" class="grid" style="margin-top:18px"></div>
+  <div id="glist"></div>
 </section>
 
 <section id="v-set">
@@ -114,15 +131,20 @@ ol.st li.c:before{background:var(--brand)}
 <div id="imp"><div class="w">
   <header><button class="x2" onclick="$('#imp').classList.remove('on')" aria-label="Fermer">✕</button><h1>Importer<br>une recette</h1><p>Copie-colle depuis la page, on nettoie tout.</p></header>
   <div class="card" style="margin-top:18px">
-    <label for="m-raw">Texte complet (facultatif)</label><textarea id="m-raw" rows="5" placeholder="Colle une légende ou toute la recette d'un coup : on trie le titre, les ingrédients et les étapes"></textarea><small>Les champs ci-dessous, s'ils sont remplis, ont la priorité.</small>
+    <label for="m-raw">Texte complet (facultatif)</label><textarea id="m-raw" rows="5" placeholder="Colle une légende ou toute la recette d'un coup : on trie le titre, les ingrédients et les étapes"></textarea><button class="btn alt block" style="margin-top:10px" onclick="pasteRaw()">📋 Coller la légende copiée</button>
+    <small>Les champs ci-dessous, s'ils sont remplis, ont la priorité.</small>
     <label for="m-t">Titre</label><input id="m-t" placeholder="Gratin dauphinois">
     <label for="m-i">Ingrédients</label><textarea id="m-i" rows="7" placeholder="Colle la liste telle quelle, avec ses puces ou non"></textarea>
     <label for="m-p">URL de la photo</label><input id="m-p" type="url" placeholder="https://…">
     <label for="m-s">Étapes</label><textarea id="m-s" rows="8" placeholder="Colle les étapes, numérotées ou non"></textarea>
     <label for="m-n">Nombre de personnes (facultatif)</label><input id="m-n" type="number" inputmode="numeric" min="1">
     <button class="btn block" onclick="manual()">Nettoyer et afficher</button>
+    <button class="btn alt block" onclick="$('#m-file').click()">📂 Ouvrir un fichier .json enregistré</button>
+    <input id="m-file" type="file" accept=".json,application/json" hidden onchange="importFile(this)">
   </div>
 </div></div>
+<div id="grp"></div>
+<div id="menu"></div>
 <div id="sheet"></div>
 
 <nav>
@@ -133,8 +155,8 @@ ol.st li.c:before{background:var(--brand)}
 
 <script>
 // ⚙️ À renseigner une seule fois par le propriétaire de l'app
-const API = 'https://script.google.com/macros/s/AKfycbxNsB1n8rEPMhJRIwWQXOtSiTre6NO5zVg1gCM_2qFa8SkvAoLg3fVQRf_Jv-5ZYD27OA/exec';
-const OWNER = 'mathis.mouawad@gmail.com';
+const API = 'COLLE_ICI_L_URL_DU_DEPLOIEMENT_APPS_SCRIPT';
+const OWNER = 'ton.email@gmail.com';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -160,10 +182,16 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => { closeD(
 if (!cfg.sheet) view('set');
 
 async function api(action, data = {}) {
-  const r = action === 'save'
+  const r = ['save', 'group_save', 'share', 'import'].includes(action)
     ? await fetch(API, { method: 'POST', body: JSON.stringify({ action, ...data }) })
     : await fetch(API + '?' + new URLSearchParams({ action, ...data }));
-  const d = await r.json();
+  const txt = await r.text(); let d;
+  try { d = JSON.parse(txt); }
+  catch (e) {
+    throw new Error(API.startsWith('COLLE_')
+      ? "L'URL Apps Script n'est pas renseignée dans index.html (constante API)."
+      : "Apps Script a renvoyé une page au lieu de données : vérifie l'URL du déploiement (constante API) et son accès « Tout le monde ».");
+  }
   if (!d.ok) { const err = new Error(d.error); err.manual = !!d.manual; throw err; }
   return d;
 }
@@ -183,6 +211,8 @@ async function saveCfg() {
 async function extract() {
   const u = $('#url').value.trim();
   if (!/^https?:\/\//.test(u)) return toast('Colle un lien valide');
+  if (/^https?:\/\/([^\/]*\.)?instagram\.com\//i.test(u))
+    return openImport('', '', u.split('?')[0], 'Instagram bloque la lecture automatique : copie la légende du post et colle-la ici');
   const b = $('#go'); b.disabled = true; b.textContent = 'Lecture de la recette…';
   try {
     const r = (await api('extract', { url: u })).recipe;
@@ -199,6 +229,14 @@ async function extract() {
   b.disabled = false; b.textContent = 'Afficher la recette';
 }
 
+async function pasteRaw() {
+  try {
+    const t = (await navigator.clipboard.readText()).trim();
+    if (!t) return toast('Presse-papiers vide');
+    $('#m-raw').value = t;
+  } catch (e) { toast('Accès au presse-papiers refusé : colle à la main'); }
+}
+
 function openImport(raw, img, src, msg) {
   $('#m-raw').value = raw || ''; $('#m-p').value = img || '';
   keep = { source: src || '', prep: 0, cook: 0 };
@@ -206,18 +244,36 @@ function openImport(raw, img, src, msg) {
   $('#imp').classList.add('on');
 }
 
+let groups = [], tab = 'r', cg = null, pend = null, menuOpts = [];
+
 async function loadLib() {
   $('#who').textContent = cfg.pseudo ? 'Le carnet de ' + cfg.pseudo : '';
   const g = $('#grid');
   if (!cfg.sheet) { g.innerHTML = '<p class="empty">Configure ton Sheet dans les réglages.</p>'; return; }
   g.innerHTML = '<p class="empty">Chargement…</p>';
   try {
-    lib = (await api('list', { sheet: cfg.sheet })).recipes;
-    g.innerHTML = lib.length ? lib.map((r, i) => `<div class="rc" onclick="show(lib[${i}],false)">
-      <div class="im" style="background-image:url('${esc(r.image)}')"></div>
-      <div class="t">${esc(r.title)}<span>${r.prep + r.cook ? '⏱ ' + (r.prep + r.cook) + ' min' : ''}</span></div></div>`).join('')
-      : '<p class="empty">Aucune recette pour l\'instant.<br>Colle ton premier lien !</p>';
+    const [a, b] = await Promise.all([api('list', { sheet: cfg.sheet }), api('groups', { sheet: cfg.sheet })]);
+    lib = a.recipes; groups = b.groups; renderLib();
   } catch (e) { g.innerHTML = ''; toast(e); }
+}
+
+function libTab(t) { tab = t; renderLib(); }
+
+function cardHtml(i) {
+  const r = lib[i];
+  return `<div class="rc" onclick="show(lib[${i}],false)"><div class="im" style="background-image:url('${esc(r.image)}')"></div>
+    <div class="t">${esc(r.title)}<span>${r.prep + r.cook ? '⏱ ' + (r.prep + r.cook) + ' min' : ''}</span></div></div>`;
+}
+
+function renderLib() {
+  $('#t-r').classList.toggle('on', tab === 'r'); $('#t-g').classList.toggle('on', tab === 'g');
+  const g = $('#grid'), l = $('#glist');
+  g.style.display = tab === 'r' ? '' : 'none'; l.style.display = tab === 'g' ? '' : 'none';
+  g.innerHTML = lib.length ? lib.map((r, i) => cardHtml(i)).join('') : '<p class="empty">Aucune recette pour l\'instant.<br>Colle ton premier lien !</p>';
+  l.innerHTML = '<button class="btn block" onclick="editGroup()">＋ Nouveau groupe</button>' + (groups.length
+    ? groups.map((x, i) => { const n = lib.filter(r => x.ids.includes(r.id)).length;
+        return `<div class="gc" onclick="openGroup(${i})"><b>${esc(x.name)}</b>${x.description ? `<p>${esc(x.description)}</p>` : ''}<small>${n} recette${n > 1 ? 's' : ''}</small></div>`; }).join('')
+    : '<p class="empty">Aucun groupe pour l\'instant.</p>');
 }
 
 function scale(s, f) {
@@ -238,7 +294,7 @@ function show(r, canSave, resume) {
   let host = ''; try { host = new URL(r.source).hostname.replace('www.', ''); } catch (e) {}
   const chips = [r.prep ? '⏱ Préparation ' + r.prep + ' min' : '', r.cook ? '🔥 Cuisson ' + r.cook + ' min' : ''].filter(Boolean);
   $('#sheet').innerHTML = `
-    <div class="hero" style="background-image:url('${esc(r.image)}')"><button class="x" onclick="closeD()">✕</button></div>
+    <div class="hero" style="background-image:url('${esc(r.image)}')"><button class="x" onclick="closeD()">✕</button><button class="x r" onclick="recipeMenu()" aria-label="Partager ou enregistrer">↗</button></div>
     <div class="body">
       <h1>${esc(r.title)}</h1>
       <p class="src">${r.source ? `<a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(host)}</a>` : ''}${r.by ? ' · ajoutée par ' + esc(r.by) : ''}</p>
@@ -388,6 +444,157 @@ function editManual() {
   $('#m-p').value = r.image || ''; $('#m-n').value = r.servings || '';
   keep = { source: r.source || '', prep: r.prep || 0, cook: r.cook || 0 };
   closeD(); $('#imp').classList.add('on');
+}
+
+// ---------- Groupes ----------
+function openGroup(i) {
+  cg = groups[i];
+  const idx = lib.map((r, k) => k).filter(k => cg.ids.includes(lib[k].id));
+  $('#grp').innerHTML = `<div class="w"><header><button class="x2" onclick="closeG()">✕</button><h1>${esc(cg.name)}</h1><p>${esc(cg.description)}</p></header>
+    <div class="row" style="margin-top:18px"><button class="btn" onclick="shareGroup()">↗ Partager</button><button class="btn alt" onclick="editGroup(${i})">Modifier</button></div>
+    <div class="grid" style="margin-top:18px">${idx.length ? idx.map(cardHtml).join('') : '<p class="empty">Ce groupe est vide. Ajoute des recettes avec « Modifier ».</p>'}</div></div>`;
+  $('#grp').classList.add('on');
+}
+
+function editGroup(i) {
+  const g = i === undefined ? { id: '', name: '', description: '', ids: [] } : groups[i];
+  cg = g;
+  $('#grp').innerHTML = `<div class="w"><header><button class="x2" onclick="${i === undefined ? 'closeG()' : 'openGroup(' + i + ')'}">✕</button><h1>${i === undefined ? 'Nouveau groupe' : 'Modifier le groupe'}</h1></header>
+    <div class="card" style="margin-top:18px">
+      <label for="g-n">Nom</label><input id="g-n" value="${esc(g.name)}" placeholder="Repas du dimanche">
+      <label for="g-d">Description</label><textarea id="g-d" rows="3" placeholder="Pour quoi, pour qui, quand…">${esc(g.description)}</textarea>
+      <label>Recettes du groupe</label>
+      ${lib.map(r => `<label class="chk"><input type="checkbox" value="${esc(r.id)}" ${g.ids.includes(r.id) ? 'checked' : ''}>${esc(r.title)}</label>`).join('') || '<small>Sauvegarde d\'abord des recettes.</small>'}
+      <button class="btn block" onclick="saveGroup()">Enregistrer</button>
+      ${g.id ? '<button class="btn alt block" onclick="delGroup()">Supprimer le groupe</button>' : ''}
+    </div></div>`;
+  $('#grp').classList.add('on');
+}
+
+async function saveGroup() {
+  const name = $('#g-n').value.trim();
+  if (!name) return toast('Donne un nom au groupe');
+  const ids = [...document.querySelectorAll('#grp .chk input:checked')].map(x => x.value);
+  try {
+    await api('group_save', { sheet: cfg.sheet, group: { id: cg.id, name, description: $('#g-d').value.trim(), ids } });
+    toast('Groupe enregistré ✓'); closeG(); tab = 'g'; loadLib();
+  } catch (e) { toast(e); }
+}
+
+async function delGroup() {
+  if (!confirm('Supprimer le groupe « ' + cg.name + ' » ? Les recettes sont conservées.')) return;
+  try { await api('group_delete', { sheet: cfg.sheet, id: cg.id }); toast('Groupe supprimé'); closeG(); loadLib(); } catch (e) { toast(e); }
+}
+function closeG() { $('#grp').classList.remove('on'); }
+
+// ---------- Menu (feuille du bas) ----------
+function menu(title, opts) {
+  menuOpts = opts;
+  $('#menu').innerHTML = `<div class="m"><h3>${esc(title)}</h3>${opts.map((o, i) => `<button onclick="menuPick(${i})">${esc(o[0])}</button>`).join('')}<button onclick="closeM()" style="background:none;text-align:center;color:var(--mute)">Annuler</button></div>`;
+  $('#menu').classList.add('on');
+}
+function menuPick(i) { closeM(); menuOpts[i][1](); }
+function closeM() { $('#menu').classList.remove('on'); }
+$('#menu').addEventListener('click', e => { if (e.target.id === 'menu') closeM(); });
+
+// ---------- Partage et export ----------
+const APP_URL = location.origin + location.pathname;
+const strip = r => ({ title: r.title, source: r.source || '', image: r.image || '', servings: r.servings || 0, prep: r.prep || 0, cook: r.cook || 0,
+  ingredients: r.ingredients, steps: r.steps, notes: r.notes || '' });
+async function copy(t) { try { await navigator.clipboard.writeText(t); toast('Copié ✓'); } catch (e) { toast('Copie impossible'); } }
+
+function recipeText(r) {
+  const f = st && st.por && r.servings ? st.por / r.servings : 1;
+  return r.title + '\n' + (st && st.por ? 'Pour ' + st.por + ' personne' + (st.por > 1 ? 's' : '') + '\n' : '') + (r.source ? r.source + '\n' : '') +
+    '\nINGRÉDIENTS\n' + r.ingredients.map(x => '• ' + scale(x, f)).join('\n') +
+    '\n\nPRÉPARATION\n' + r.steps.map((x, i) => (i + 1) + '. ' + x).join('\n') + (r.notes ? '\n\nNOTES\n' + r.notes : '');
+}
+const fname = r => r.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'recette';
+function dl(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+function recipeMenu() {
+  const r = cur;
+  const o = [['🔗 Partager par lien', shareRecipe], ['📋 Copier le texte', () => copy(recipeText(r))],
+    ['⬇️ Enregistrer en .txt (lisible)', () => dl(fname(r) + '.txt', recipeText(r), 'text/plain')],
+    ['💾 Enregistrer en .json (réimportable)', () => dl(fname(r) + '.json', JSON.stringify(strip(r), null, 1), 'application/json')]];
+  if (r.id) o.push(['📁 Ajouter à un groupe', addToGroup]);
+  menu(r.title, o);
+}
+
+// Lien prêt : un second appui est nécessaire (le navigateur exige un geste de l'utilisateur pour ouvrir le partage)
+function linkReady(title, text, url) {
+  menu('Lien prêt ✓', [['↗ Partager…', () => navigator.share ? navigator.share({ title, text, url }).catch(() => {}) : copy(url)], ['📋 Copier le lien', () => copy(url)]]);
+}
+async function shareLink(payload) {
+  toast('Création du lien…');
+  const d = await api('share', Object.assign({ sheet: cfg.sheet, pseudo: cfg.pseudo }, payload));
+  return APP_URL + '#p=' + d.code;
+}
+async function shareRecipe() {
+  try { linkReady(cur.title, 'Une recette à essayer : ' + cur.title, await shareLink({ type: 'recipe', recipe: strip(cur) })); } catch (e) { toast(e); }
+}
+async function shareGroup() {
+  try { linkReady(cg.name, 'Mon groupe de recettes « ' + cg.name + ' »', await shareLink({ type: 'group', id: cg.id })); } catch (e) { toast(e); }
+}
+
+async function addToGroup() {
+  if (!groups.length && cfg.sheet) { try { groups = (await api('groups', { sheet: cfg.sheet })).groups; } catch (e) { return toast(e); } }
+  const o = groups.map(g => [g.name + (g.ids.includes(cur.id) ? ' ✓' : ''), () => toggleIn(g)]);
+  o.push(['＋ Nouveau groupe', async () => { closeD(); view('lib'); await loadLib(); editGroup(); }]);
+  menu('Ajouter à un groupe', o);
+}
+async function toggleIn(g) {
+  const ids = g.ids.includes(cur.id) ? g.ids.filter(x => x !== cur.id) : g.ids.concat(cur.id);
+  try {
+    await api('group_save', { sheet: cfg.sheet, group: { id: g.id, name: g.name, description: g.description, ids } });
+    g.ids = ids; toast('Groupe « ' + g.name + ' » mis à jour');
+  } catch (e) { toast(e); }
+}
+
+// ---------- Réception d'un lien partagé ----------
+function openShared(sh) {
+  const d = sh.data;
+  if (sh.type !== 'group') { show(d, true); return toast('Recette partagée' + (sh.by ? ' par ' + sh.by : '')); }
+  pend = d;
+  $('#grp').innerHTML = `<div class="w"><header><button class="x2" onclick="closeG()">✕</button><h1>${esc(d.name)}</h1><p>${esc(d.description)}</p>
+    <p style="margin-top:8px">Groupe partagé${sh.by ? ' par ' + esc(sh.by) : ''} · ${d.recipes.length} recette${d.recipes.length > 1 ? 's' : ''}</p></header>
+    ${d.recipes.map((r, i) => `<div class="gc" onclick="show(pend.recipes[${i}],false)"><b>${esc(r.title)}</b></div>`).join('')}
+    <div class="bar"><button class="btn" onclick="importGroup()">Ajouter à mon carnet</button></div></div>`;
+  $('#grp').classList.add('on');
+}
+async function importGroup() {
+  if (!cfg.sheet) { closeG(); view('set'); return toast('Configure d\'abord ton Sheet'); }
+  try {
+    const d = await api('import', { sheet: cfg.sheet, pseudo: cfg.pseudo, group: pend });
+    toast(d.result.count + ' recette' + (d.result.count > 1 ? 's' : '') + ' ajoutée' + (d.result.count > 1 ? 's' : '') + ' ✓');
+    closeG(); tab = 'g'; view('lib');
+  } catch (e) { toast(e); }
+}
+async function openFromHash() {
+  const m = location.hash.match(/^#p=([a-f0-9]{12})$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try { openShared((await api('shared', { code: m[1] })).shared); } catch (e) { toast(e); }
+}
+openFromHash(); addEventListener('hashchange', openFromHash);
+
+// Ouvrir un .json enregistré
+function importFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if (!d.title || !Array.isArray(d.ingredients) || !Array.isArray(d.steps)) throw 0;
+      $('#imp').classList.remove('on'); show(d, true);
+    } catch (e) { toast('Fichier non reconnu'); }
+    inp.value = '';
+  };
+  rd.readAsText(f);
 }
 
 // Au démarrage : réouvre la recette en cours
