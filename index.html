@@ -455,15 +455,21 @@ function embedUrl(src) {
   const ig = src.match(/instagram\.com\/(reel|reels|p|tv)\/([A-Za-z0-9_-]+)/);
   if (ig) return { url: 'https://www.instagram.com/' + (ig[1] === 'reels' ? 'reel' : ig[1]) + '/' + ig[2] + '/embed/', h: 640 };
   const tt = src.match(/tiktok\.com\/.*\/video\/(\d+)/);
-  if (tt) return { url: 'https://www.tiktok.com/player/v1/' + tt[1] + '?rel=0&music_info=0&description=0', h: 620 };
+  if (tt) return { url: '', h: 620, tiktok: true };
   return null;
 }
-function toggleVideo() {
+async function toggleVideo() {
   const box = $('#vid'), b = $('#vb');
   if (box.innerHTML) { box.innerHTML = ''; b.textContent = '▶ Voir la vidéo'; return; }
   const e = embedUrl(cur.source);
-  box.innerHTML = `<iframe src="${esc(e.url)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"
-    style="width:100%;max-width:420px;height:${e.h}px;border:0;border-radius:24px;background:#fff;display:block;margin:14px auto 0"></iframe>`;
+  let src = e.url;
+  if (e.tiktok) {   // TikTok : lien d'intégration officiel demandé à l'instant (il peut expirer)
+    b.textContent = 'Chargement…';
+    try { src = (await api('player', { url: cur.source })).src; } catch (err) { b.textContent = '▶ Voir la vidéo'; return toast(err); }
+  }
+  box.innerHTML = `<iframe src="${esc(src)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen
+    style="width:100%;max-width:420px;height:${e.h}px;border:0;border-radius:24px;background:#000;display:block;margin:14px auto 0"></iframe>
+    <p style="text-align:center;margin-top:8px"><small><a href="${esc(src)}" target="_blank" rel="noopener">Le lecteur ne démarre pas ? Ouvrir dans un onglet</a></small></p>`;
   b.textContent = '✕ Masquer la vidéo';
 }
 

@@ -15,6 +15,7 @@ function route_(p) {
     if (p.action === 'extract') return { ok: true, recipe: extract_(p.url) };
     if (p.action === 'list') return { ok: true, recipes: list_(p.sheet) };
     if (p.action === 'save') return { ok: true, row: save_(p.sheet, p.recipe, p.pseudo) };
+    if (p.action === 'player') return { ok: true, src: tiktokPlayer_(p.url) };
     if (p.action === 'groups') return { ok: true, groups: groups_(p.sheet) };
     if (p.action === 'group_save') return { ok: true, id: group_save_(p.sheet, p.group) };
     if (p.action === 'group_delete') return { ok: true, deleted: group_delete_(p.sheet, p.id) };
@@ -185,7 +186,7 @@ function instagram_(url) {
     if (!media && /"contextJSON":null/.test(h)) fail_('Ce post est privé ou indisponible : seuls les posts publics peuvent être lus. Colle la légende à la main.');
     fail_('Aucune légende trouvée sur ce post.');
   }
-  return { caption: caption, author: author, image: image, source: url.split('?')[0] };
+  return { caption: caption, author: author, image: cacheImage_(image, m[2]), source: url.split('?')[0] };
 }
 
 function deep_(o, key) {
@@ -196,13 +197,58 @@ function deep_(o, key) {
   return null;
 }
 
-// TikTok : l'oEmbed ne renvoie plus la légende (en attente du résultat des tests)
+// TikTok : légende, auteur et miniature lus dans les balises meta de la page publique.
+// Aucune vidéo n'est téléchargée : la lecture passe par le lecteur officiel (voir tiktokPlayer_).
+const TIKTOK_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
+
 function tiktok_(url) {
-  const res = UrlFetchApp.fetch('https://www.tiktok.com/oembed?url=' + encodeURIComponent(url), { headers: { 'User-Agent': UA }, muteHttpExceptions: true });
-  if (res.getResponseCode() >= 400) fail_('Vidéo inaccessible (privée, supprimée ou service indisponible).');
-  const d = JSON.parse(res.getContentText());
-  if (!(d.title || '').trim()) fail_('Aucune légende récupérable pour cette vidéo.');
-  return { caption: d.title, author: d.author_name || '', image: d.thumbnail_url || '', source: url };
+  const idm = url.match(/\/(?:video|photo)\/(\d+)/);
+  if (!idm) fail_('Lien TikTok non reconnu.');
+  const res = UrlFetchApp.fetch(url, { headers: { 'User-Agent': TIKTOK_UA }, muteHttpExceptions: true, followRedirects: true });
+  if (res.getResponseCode() !== 200) fail_('Vidéo inaccessible (HTTP ' + res.getResponseCode() + ').');
+  const meta = metaOf_(res.getContentText());
+  const caption = meta['og:description'] || meta['twitter:description'] || meta['description'] || '';
+  if (!caption.trim()) fail_('Aucune description trouvée pour cette vidéo.');
+  const a = url.match(/tiktok\.com\/@([^\/]+)\//i);
+  return {
+    caption: caption,
+    author: a ? decodeURIComponent(a[1]) : '',
+    image: cacheImage_(meta['og:image'] || meta['twitter:image'] || '', 'tt-' + idm[1]),
+    source: url.split('?')[0]
+  };
+}
+
+// URL d'intégration OFFICIELLE : on la demande à l'oEmbed (le lecteur refuse une URL fabriquée sans le paramètre embed_from)
+function tiktokPlayer_(url) {
+  const idm = String(url).match(/\/(?:video|photo)\/(\d+)/);
+  if (!idm) fail_('Lien TikTok non reconnu.');
+  try {
+    const res = UrlFetchApp.fetch('https://www.tiktok.com/oembed?url=' + encodeURIComponent(url), { headers: { 'User-Agent': UA }, muteHttpExceptions: true });
+    const d = JSON.parse(res.getContentText());
+    const m = (d.html || '').match(/<iframe[^>]*\bsrc="([^"]+)"/i);
+    if (m) return m[1].replace(/&amp;/g, '&');
+  } catch (e) { /* repli ci-dessous */ }
+  return 'https://www.tiktok.com/player/v1/' + idm[1] + '?embed_from=oembed&music_info=0&description=0&controls=1';
+}
+
+function metaOf_(html) {
+  const meta = {};
+  (String(html).match(/<meta\b[^>]*>/gi) || []).forEach(function (tag) {
+    const attrs = {}, re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+    let m;
+    while ((m = re.exec(tag)) !== null) attrs[m[1].toLowerCase()] = m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4];
+    const key = attrs.property || attrs.name || attrs.itemprop;
+    if (key && attrs.content) meta[String(key).toLowerCase()] = entities_(attrs.content);
+  });
+  return meta;
+}
+
+function entities_(v) {
+  return String(v)
+    .replace(/&#x([0-9a-f]+);/gi, function (_, h) { return String.fromCodePoint(parseInt(h, 16)); })
+    .replace(/&#(\d+);/g, function (_, d) { return String.fromCodePoint(parseInt(d, 10)); })
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');
 }
 
 function resolve_(u) {
@@ -330,18 +376,23 @@ function import_(url, grp, pseudo) {
 // On les copie dans un dossier Drive (lisible par lien) ; si Drive n'est pas autorisé, on garde l'URL d'origine.
 const SOCIAL_CDN = /(cdninstagram\.com|fbcdn\.net|tiktokcdn[\w-]*\.com)/i;
 
-function cacheImage_(url) {
+function cacheImage_(url, key) {
   if (!url || !SOCIAL_CDN.test(url)) return url;
   try {
-    const res = UrlFetchApp.fetch(url, { headers: { 'User-Agent': UA }, muteHttpExceptions: true });
+    const folder = imgFolder_();
+    const name = 'rec-' + (key || newId_()) + '.jpg';
+    if (key) { const it = folder.getFilesByName(name); if (it.hasNext()) return driveUrl_(it.next().getId()); }
+    const res = UrlFetchApp.fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, muteHttpExceptions: true, followRedirects: true });
     if (res.getResponseCode() !== 200) return url;
     const blob = res.getBlob();
     if (!/^image\//.test(blob.getContentType())) return url;
-    const f = imgFolder_().createFile(blob.setName('recette-' + newId_() + '.jpg'));
+    const f = folder.createFile(blob.setName(name));
     f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w1000';
+    return driveUrl_(f.getId());
   } catch (e) { return url; }
 }
+
+function driveUrl_(id) { return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1000'; }
 
 function imgFolder_() {
   const props = PropertiesService.getScriptProperties();
@@ -354,3 +405,12 @@ function imgFolder_() {
 
 // À exécuter UNE FOIS depuis l'éditeur pour autoriser Drive, puis redéployer une nouvelle version
 function autoriserDrive() { Logger.log('Drive autorisé : ' + DriveApp.getRootFolder().getName()); }
+
+// Diagnostic : lance l'extraction réelle sur un Reel et un TikTok publics. Résultat dans Affichage > Journaux.
+function diagReseaux() {
+  ['https://www.instagram.com/reel/Dfz7dLDojkA/', 'https://www.tiktok.com/@twosistersscook/video/7692464006593924384'].forEach(function (u) {
+    Logger.log('==== ' + u);
+    Logger.log(JSON.stringify(route_({ action: 'extract', url: u })).slice(0, 900));
+  });
+  Logger.log('==== lecteur TikTok\n' + JSON.stringify(route_({ action: 'player', url: 'https://www.tiktok.com/@twosistersscook/video/7692464006593924384' })));
+}
